@@ -1,0 +1,119 @@
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+import google.oauth2.id_token
+from google.auth.transport import requests
+import starlette.status as status
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from urllib.parse import quote_plus
+from bson import ObjectId
+
+
+username = quote_plus("archana")
+password = quote_plus("Manish@123")
+
+# connection string to our MongoDB NoSQL database
+uri = f"mongodb+srv://{username}:{password}@cluster0.z9iumxa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+
+# Send a ping to confirm a successful connection to the database
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+
+# define the app that will contain all of our routing for FastAPI
+app = FastAPI()
+
+# open up a database in MongoDB and open the collections we will need
+db = client['A1-3199429']
+rooms = db["rooms"]
+days = db["days"]
+bookings = db["bookings"]
+
+
+# we need a request object to be able to talk to firebase for verifying user logins
+firebase_request_adapter = requests.Request()
+
+# define the static and templates directories
+app.mount('/static', StaticFiles(directory='static'), name='static')
+templates = Jinja2Templates(directory='templates')
+
+
+# function that we will use to validate an id_token
+def validateFirebaseToken(id_token):
+    if not id_token:
+        return None
+
+    user_token = None
+    try:
+        user_token = google.oauth2.id_token.verify_firebase_token(
+            id_token, firebase_request_adapter)
+    except ValueError as err:
+        print(str(err))
+
+    return user_token
+
+
+# root route
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    id_token = request.cookies.get('token')
+    error_message = 'No error here'
+    user_token = None
+
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return templates.TemplateResponse(
+            'main.html',
+            {
+                'request': request,
+                'user_token': None,
+                'error_message': None,
+                'room_list': None
+            }
+        )
+
+    room_list = list(rooms.find())
+    return templates.TemplateResponse(
+        'main.html',
+        {
+            'request': request,
+            'user_token': user_token,
+            'error_message': error_message,
+            'room_list': room_list
+        }
+    )
+
+# Get Room Details
+@app.get("/rooms/{room_id}", response_class=HTMLResponse)
+async def view_room(room_id: str, request: Request):
+
+    room = rooms.find_one({"_id": ObjectId(room_id)})
+    day_list = list(days.find({"room_id": ObjectId(room_id)}))
+
+    return templates.TemplateResponse(
+        "rooms.html",
+        {
+            "request": request,
+            "room": room,
+            "days": day_list
+        }
+    )
+
+# Add Room
+@app.post("/add-room")
+async def add_room(request: Request):
+    form = await request.form()
+    room_no = form.get("room_no")
+    floor_no = form.get("floor_no")
+
+    if room_no:
+        rooms.insert_one({"room_no": room_no, "floor_no": floor_no})
+
+    return RedirectResponse("/", status_code=303)
