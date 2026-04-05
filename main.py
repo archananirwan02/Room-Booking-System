@@ -64,7 +64,7 @@ def validateFirebaseToken(id_token):
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     id_token = request.cookies.get('token')
-    error_message = 'No error here'
+    error_message = None
     user_token = None
 
     user_token = validateFirebaseToken(id_token)
@@ -78,6 +78,10 @@ async def root(request: Request):
                 'room_list': None
             }
         )
+
+    error_flag = request.query_params.get("error")
+    if error_flag == "room_exists":
+        error_message = "Room already exists."
 
     room_list = list(rooms_doc.find())
     return templates.TemplateResponse(
@@ -113,7 +117,19 @@ async def add_room(request: Request):
     room_no = form.get("room_no")
     floor_no = form.get("floor_no")
 
-    if room_no:
-        rooms_doc.insert_one({"room_no": room_no, "floor_no": floor_no})
-
+    room_exists = rooms_doc.find_one({"room_no": room_no})
+    
+    if room_exists:
+        # Optionally, you can redirect or show a message
+        print(f"Room '{room_no}' already exists.")
+        return RedirectResponse("/?error=room_exists", status_code=303)
+    
+    # Insert only if not found
+    rooms_doc.insert_one({
+        "room_no": room_no,
+        "floor_no": floor_no,
+        "days": []
+    })
     return RedirectResponse("/", status_code=303)
+
+

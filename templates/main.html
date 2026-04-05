@@ -32,6 +32,10 @@
     <input type="text" name="floor_no" placeholder="Floor No." required/>
     <button type="submit">Add Room</button>
 </form>
+{% if error_message %}
+    <p class="error-message">{{ error_message }}</p>
+{% endif %}
+
 
 <hr/>
 {% endif %}
