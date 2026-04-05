@@ -32,9 +32,9 @@ app = FastAPI()
 
 # open up a database in MongoDB and open the collections we will need
 db = client['A1-3199429']
-rooms = db["rooms"]
-days = db["days"]
-bookings = db["bookings"]
+rooms_doc = db["rooms"]
+days_doc = db["days"]
+bookings_doc = db["bookings"]
 
 
 # we need a request object to be able to talk to firebase for verifying user logins
@@ -79,7 +79,7 @@ async def root(request: Request):
             }
         )
 
-    room_list = list(rooms.find())
+    room_list = list(rooms_doc.find())
     return templates.TemplateResponse(
         'main.html',
         {
@@ -94,8 +94,8 @@ async def root(request: Request):
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
 async def view_room(room_id: str, request: Request):
 
-    room = rooms.find_one({"_id": ObjectId(room_id)})
-    day_list = list(days.find({"room_id": ObjectId(room_id)}))
+    room = rooms_doc.find_one({"_id": ObjectId(room_id)})
+    day_list = list(days_doc.find({"room_id": ObjectId(room_id)}))
 
     return templates.TemplateResponse(
         "rooms.html",
@@ -114,6 +114,6 @@ async def add_room(request: Request):
     floor_no = form.get("floor_no")
 
     if room_no:
-        rooms.insert_one({"room_no": room_no, "floor_no": floor_no})
+        rooms_doc.insert_one({"room_no": room_no, "floor_no": floor_no})
 
     return RedirectResponse("/", status_code=303)

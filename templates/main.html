@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Room Scheduler</title>
+    <link type="text/css" href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
+    <script type="module" src="{{ url_for('static', path='/firebase-login.js') }}"></script>
+</head>
+
+<body>
+    <h1>Room Booking</h1>
+
+<div id="login-box" hidden="true">
+    Email: <input type="email" id="email"/><br/>
+    Password: <input type="password" id="password"/><br/>
+    <button id="login">Login</button>
+    <button id="sign-up">Sign Up</button>
+</div>
+
+<button id="sign-out" hidden="true">Sign out</button>
+
+{% if user_token %}
+<p>User email: {{ user_token.email }}</p>
+{% endif %}
+
+<hr/>
+
+{% if user_token %}
+<h2>Add a New Room</h2>
+<form method="post" action="/add-room">
+    <input type="text" name="room_no" placeholder="Room No." required/>
+    <input type="text" name="floor_no" placeholder="Floor No." required/>
+    <button type="submit">Add Room</button>
+</form>
+
+<hr/>
+{% endif %}
+
+{% if user_token %}
+<h2>Available Rooms</h2>
+
+<ul>
+{% for r in rooms_doc %}
+    <li>
+        {{ r.room_no }}
+        <a href="/rooms/{{ r._id }}">View</a>
+    </li>
+{% endfor %}
+</ul>
+{% endif %}
+
+</body>
+
+</html>

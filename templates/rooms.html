@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ room.room_no }}</title>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
+</head>
+
+<body>
+
+<h1>{{ room.room_no }}</h1>
+
+<h2>Days for this room</h2>
+
+<ul>
+{% for d in days %}
+    <li>{{ d.date }}</li>
+{% endfor %}
+</ul>
+
+<a href="/">Back</a>
+
+</body>
+</html>
