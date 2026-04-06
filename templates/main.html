@@ -40,6 +40,37 @@
 <hr/>
 {% endif %}
 
+<!-- Book a room form starts here-->
+<h2>Book a Room</h2>
+<form method="post" action="/book-room">
+    <label>Room:</label>
+    <select name="room_no">
+        {% for r in room_list %}
+            <option value="{{ r._id }}">{{ r.room_no }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Date:</label>
+    <input type="date" name="date" required>
+
+    <label>Start Time:</label>
+    <input type="time" name="start_time" required>
+
+    <label>End Time:</label>
+    <input type="time" name="end_time" required>
+
+    <button type="submit">Book</button>
+</form>
+{% if invalid_time_message %}
+    <p class="error-message">{{ invalid_time_message }}</p>
+{% endif %}
+{% if success_message %}
+    <p class="success-message">{{ success_message }}</p>
+{% endif %}
+
+<hr/>
+<!-- Book a room form ends here-->
+
 {% if user_token %}
 <h2>Available Rooms</h2>
 

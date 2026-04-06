@@ -65,7 +65,9 @@ def validateFirebaseToken(id_token):
 async def root(request: Request):
     id_token = request.cookies.get('token')
     error_message = None
+    invalid_time_message = None
     user_token = None
+    success_message = None
 
     user_token = validateFirebaseToken(id_token)
     if not user_token:
@@ -74,14 +76,20 @@ async def root(request: Request):
             {
                 'request': request,
                 'user_token': None,
-                'error_message': None,
-                'room_list': None
+                'error_message': None
             }
         )
 
     error_flag = request.query_params.get("error")
     if error_flag == "room_exists":
         error_message = "Room already exists."
+    elif error_flag == "invalid_time":
+        invalid_time_message = "End time must be later than start time."
+
+    success_flag = request.query_params.get("success")
+    if success_flag == "booking_created":
+        success_message = "Room booked successfully!"
+
 
     room_list = list(rooms_doc.find())
     return templates.TemplateResponse(
@@ -90,7 +98,9 @@ async def root(request: Request):
             'request': request,
             'user_token': user_token,
             'error_message': error_message,
-            'room_list': room_list
+            'invalid_time_message': invalid_time_message,
+            'room_list': room_list,
+            'success_message': success_message
         }
     )
 
@@ -133,3 +143,44 @@ async def add_room(request: Request):
     return RedirectResponse("/", status_code=303)
 
 
+# Book a room route
+@app.post("/book-room")
+async def book_room(req: Request):
+    form = await req.form()
+    user_token = None
+
+    room_id = form.get("room_no")
+    date = form.get("date")
+    start_time = form.get("start_time")
+    end_time = form.get("end_time")
+
+    # Get logged-in user
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+    
+    if end_time <= start_time:
+        return RedirectResponse("/?error=invalid_time", status_code=303)
+
+    # 1. Find or create the Day document
+    day = days_doc.find_one({"room_id": ObjectId(room_id), "date": date})
+
+    if not day:
+        day_id = days_doc.insert_one({
+            "room_id": ObjectId(room_id),
+            "date": date
+        }).inserted_id
+    else:
+        day_id = day["_id"]
+
+    # 2. Insert booking
+    bookings_doc.insert_one({
+        "day_id": day_id,
+        "start_time": start_time,
+        "end_time": end_time,
+        "user_email": user_token["email"]
+    })
+
+    return RedirectResponse("/?success=booking_created", status_code=303)
