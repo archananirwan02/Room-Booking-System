@@ -184,3 +184,34 @@ async def book_room(req: Request):
     })
 
     return RedirectResponse("/?success=booking_created", status_code=303)
+
+
+# Route for All my bookings
+@app.get("/my-bookings", response_class=HTMLResponse)
+async def my_bookings(req: Request):
+
+    # Get logged-in user
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
+    user_email = user_token["email"]
+
+    # Fetch all bookings for this user
+    user_bookings = list(bookings_doc.find({"user_email": user_email}))
+
+    # Attach room + date info
+    for b in user_bookings:
+        day = days_doc.find_one({"_id": ObjectId(b["day_id"])})
+        if not day:
+            continue  # skip corrupted booking
+        room = rooms_doc.find_one({"_id": ObjectId(day["room_id"])})
+        b["date"] = day["date"]
+        b["room_no"] = room["room_no"]
+
+    return templates.TemplateResponse(
+        "bookings.html",
+        {"request": req, "bookings": user_bookings}
+    )
