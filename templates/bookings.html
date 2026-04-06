@@ -1,3 +1,12 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>User Bookings</title>
+    <link type="text/css" href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
+</head>
+
+<body>
 <h1>My Bookings</h1>
 
 <table>
@@ -14,8 +23,19 @@
         <td>{{ b.date }}</td>
         <td>{{ b.start_time }}</td>
         <td>{{ b.end_time }}</td>
+        <td>
+            <form method="post" action="/delete-room-booking">
+                <input type="hidden" name="booking_id" value="{{ b._id }}">
+                <button type="submit">Delete</button>
+            </form>
+        </td>
     </tr>
     {% endfor %}
 </table>
+{% if success_message %}
+    <p class="success-message">{{ success_message }}</p>
+{% endif %}
 
 <a href="/">Back</a>
+</body>
+</html>

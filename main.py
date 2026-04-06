@@ -190,6 +190,8 @@ async def book_room(req: Request):
 @app.get("/my-bookings", response_class=HTMLResponse)
 async def my_bookings(req: Request):
 
+    success_message = None
+
     # Get logged-in user
     id_token = req.cookies.get("token")
     user_token = validateFirebaseToken(id_token)
@@ -198,6 +200,12 @@ async def my_bookings(req: Request):
         return RedirectResponse("/?error=not_logged_in", status_code=303)
 
     user_email = user_token["email"]
+
+    success_flag = req.query_params.get("success")
+
+    if success_flag == "booking_deleted":
+        success_message = "Booking deleted successfully!"
+
 
     # Fetch all bookings for this user
     user_bookings = list(bookings_doc.find({"user_email": user_email}))
@@ -213,5 +221,67 @@ async def my_bookings(req: Request):
 
     return templates.TemplateResponse(
         "bookings.html",
-        {"request": req, "bookings": user_bookings}
+        {"request": req, 
+         "bookings": user_bookings,
+         "success_message": success_message}
     )
+
+
+# Show all bookings current user has made on specific room
+@app.get("/my-bookings-room", response_class=HTMLResponse)
+async def my_bookings_room(req: Request, room_id: str):
+
+    success_message = None
+
+    # Logged-in user
+    id_token = req.cookies.get("token")
+    user_token = None
+
+    user_token = validateFirebaseToken(id_token)
+
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+    
+    success_flag = req.query_params.get("success")
+
+    if success_flag == "booking_deleted":
+        success_message = "Booking deleted successfully!"
+
+    user_email = user_token["email"]
+
+    # Find all days for this room
+    room_days = list(days_doc.find({"room_id": ObjectId(room_id)}))
+    day_ids = [d["_id"] for d in room_days]
+
+    # Find bookings for this user on those days
+    user_bookings = list(bookings_doc.find({
+        "user_email": user_email,
+        "day_id": {"$in": day_ids}
+    }))
+
+    # Attach readable info
+    room = rooms_doc.find_one({"_id": ObjectId(room_id)})
+
+    for b in user_bookings:
+        day = days_doc.find_one({"_id": ObjectId(b["day_id"])})
+        b["date"] = day["date"]
+        b["room_no"] = room["room_no"]
+
+    return templates.TemplateResponse(
+        "bookings.html",
+        {"request": req, 
+         "bookings": user_bookings,
+         "success_message": success_message}
+    )
+
+# Delete a booking route
+@app.post("/delete-room-booking")
+async def delete_booking(req: Request):
+    form = await req.form()
+    booking_id = form.get("booking_id")
+
+    # Delete the booking
+    bookings_doc.delete_one({"_id": ObjectId(booking_id)})
+
+    # Redirect back to "My Bookings"
+    return RedirectResponse("/my-bookings?success=booking_deleted", status_code=303)

@@ -93,6 +93,20 @@
     <button type="submit">Show My Bookings</button>
 </form>
 
+<hr/>
+<h2>Show My Bookings for a Specific Room</h2>
+
+<form method="get" action="/my-bookings-room">
+    <label>Select Room:</label>
+    <select name="room_id">
+        {% for r in room_list %}
+            <option value="{{ r._id }}">{{ r.room_no }}</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">Show Bookings</button>
+</form>
+
 </body>
 
 </html>
