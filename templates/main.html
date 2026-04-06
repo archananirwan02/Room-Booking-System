@@ -44,9 +44,9 @@
 <h2>Available Rooms</h2>
 
 <ul>
-{% for r in rooms_doc %}
+{% for r in room_list %}
     <li>
-        {{ r.room_no }}
+        Room No. {{ r.room_no }}
         <a href="/rooms/{{ r._id }}">View</a>
     </li>
 {% endfor %}
