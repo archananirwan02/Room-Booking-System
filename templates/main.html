@@ -79,6 +79,10 @@
     <li>
         Room No. {{ r.room_no }}
         <a href="/rooms/{{ r._id }}">View</a>
+        <form method="post" action="/delete-room" style="display:inline;">
+            <input type="hidden" name="room_id" value="{{ r._id }}">
+            <button type="submit">Delete room</button>
+        </form>
     </li>
 {% endfor %}
 </ul>
@@ -106,7 +110,6 @@
 
     <button type="submit">Show Bookings</button>
 </form>
-
 </body>
 
 </html>

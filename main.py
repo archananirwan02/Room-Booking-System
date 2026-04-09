@@ -128,6 +128,11 @@ async def add_room(request: Request):
     room_no = form.get("room_no")
     floor_no = form.get("floor_no")
 
+    id_token = request.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
     room_exists = rooms_doc.find_one({"room_no": room_no})
     
     if room_exists:
@@ -139,7 +144,8 @@ async def add_room(request: Request):
     rooms_doc.insert_one({
         "room_no": room_no,
         "floor_no": floor_no,
-        "days": []
+        "days": [],
+        "created_by": user_token["email"]
     })
     return RedirectResponse("/", status_code=303)
 
@@ -396,3 +402,41 @@ async def edit_booking(
     )
 
     return RedirectResponse("/my-bookings?success=booking_updated", status_code=303)
+
+
+# Delete a room without Booking and same User
+@app.post("/delete-room")
+async def delete_room(req: Request):
+    form = await req.form()
+    room_id = form.get("room_id")
+
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
+    user_email = user_token["email"]
+    room_obj_id = ObjectId(room_id)
+
+    #room exists and was created by this user
+    room = rooms_doc.find_one({
+        "_id": room_obj_id,
+        "created_by": user_email
+    })
+    if not room:
+        # either not found or not creator
+        return RedirectResponse("/?error=room_delete_forbidden", status_code=303)
+
+    #there are no bookings on this room
+    room_days = list(days_doc.find({"room_id": room_obj_id}))
+    day_ids = [d["_id"] for d in room_days]
+
+    existing_booking = bookings_doc.find_one({"day_id": {"$in": day_ids}})
+    if existing_booking:
+        return RedirectResponse("/?error=room_has_bookings", status_code=303)
+
+    #delete room and its days
+    rooms_doc.delete_one({"_id": room_obj_id})
+    days_doc.delete_many({"room_id": room_obj_id})
+
+    return RedirectResponse("/", status_code=303)
