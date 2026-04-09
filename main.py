@@ -9,6 +9,7 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from urllib.parse import quote_plus
 from bson import ObjectId
+from fastapi import Form
 
 
 username = quote_plus("archana")
@@ -280,8 +281,118 @@ async def delete_booking(req: Request):
     form = await req.form()
     booking_id = form.get("booking_id")
 
+    id_token = req.cookies.get("token")
+    user_token = None
+
+    user_token = validateFirebaseToken(id_token)
+
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+    
+    user_email = user_token["email"]
+
+    if not user_email:
+        return RedirectResponse("/", status_code=303)
+
     # Delete the booking
-    bookings_doc.delete_one({"_id": ObjectId(booking_id)})
+    bookings_doc.delete_one({
+        "_id": ObjectId(booking_id),
+        "user_email": user_email
+    })
 
     # Redirect back to "My Bookings"
     return RedirectResponse("/my-bookings?success=booking_deleted", status_code=303)
+
+# Edit booking route
+@app.get("/edit-booking/{booking_id}", response_class=HTMLResponse)
+async def edit_booking(req: Request, booking_id: str):
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
+    user_email = user_token["email"]
+
+    booking = bookings_doc.find_one({
+        "_id": ObjectId(booking_id),
+        "user_email": user_email
+    })
+    if not booking:
+        return RedirectResponse("/my-bookings?error=booking_not_found", status_code=303)
+
+    day = days_doc.find_one({"_id": ObjectId(booking["day_id"])})
+    if not day:
+        return RedirectResponse("/my-bookings?error=booking_not_found", status_code=303)
+
+    room = rooms_doc.find_one({"_id": ObjectId(day["room_id"])})
+
+    # attach extra fields for template
+    booking["date"] = day["date"]
+    booking["room_no"] = room["room_no"]
+    booking["room_id"] = str(room["_id"])
+
+    return templates.TemplateResponse(
+        "edit_booking.html",
+        {
+            "request": req,
+            "booking": booking
+        }
+    )
+
+
+# Edit booking POST route
+@app.post("/edit-booking")
+async def edit_booking(
+    req: Request,
+    booking_id: str = Form(...),
+    room_id: str = Form(...),
+    date: str = Form(...),
+    start_time: str = Form(...),
+    end_time: str = Form(...),
+):
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
+    user_email = user_token["email"]
+
+    # basic time validation like in book-room
+    if end_time <= start_time:
+        return RedirectResponse("/my-bookings?error=invalid_time", status_code=303)
+
+    booking = bookings_doc.find_one({
+        "_id": ObjectId(booking_id),
+        "user_email": user_email
+    })
+    if not booking:
+        return RedirectResponse("/my-bookings?error=booking_not_found", status_code=303)
+
+    room_obj_id = ObjectId(room_id)
+
+    # find or create Day for this room + date
+    day = days_doc.find_one({"room_id": room_obj_id, "date": date})
+    if not day:
+        day_id = days_doc.insert_one({
+            "room_id": room_obj_id,
+            "date": date
+        }).inserted_id
+    else:
+        day_id = day["_id"]
+
+    # update booking
+    bookings_doc.update_one(
+        {
+            "_id": ObjectId(booking_id),
+            "user_email": user_email
+        },
+        {
+            "$set": {
+                "day_id": day_id,
+                "start_time": start_time,
+                "end_time": end_time
+            }
+        }
+    )
+
+    return RedirectResponse("/my-bookings?success=booking_updated", status_code=303)

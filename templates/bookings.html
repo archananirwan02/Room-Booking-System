@@ -24,6 +24,9 @@
         <td>{{ b.start_time }}</td>
         <td>{{ b.end_time }}</td>
         <td>
+            <a href="/edit-booking/{{ b._id }}">Edit</a>
+        </td>
+        <td>
             <form method="post" action="/delete-room-booking">
                 <input type="hidden" name="booking_id" value="{{ b._id }}">
                 <button type="submit">Delete</button>

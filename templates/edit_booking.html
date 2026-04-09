@@ -1,0 +1,17 @@
+<h2>Edit booking for room {{ booking.room_no }}</h2>
+
+<form method="post" action="/edit-booking">
+  <input type="hidden" name="booking_id" value="{{ booking._id }}">
+  <input type="hidden" name="room_id" value="{{ booking.room_id }}">
+
+  <label>Date</label>
+  <input type="date" name="date" value="{{ booking.date }}" required>
+
+  <label>Start time</label>
+  <input type="time" name="start_time" value="{{ booking.start_time }}" required>
+
+  <label>End time</label>
+  <input type="time" name="end_time" value="{{ booking.end_time }}" required>
+
+  <button type="submit">Save changes</button>
+</form>
