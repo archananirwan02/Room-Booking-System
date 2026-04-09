@@ -21,9 +21,8 @@
 
 {% if user_token %}
 <p>User email: {{ user_token.email }}</p>
-{% endif %}
-
 <hr/>
+{% endif %}
 
 {% if user_token %}
 <h2>Add a New Room</h2>
@@ -41,6 +40,7 @@
 {% endif %}
 
 <!-- Book a room form starts here-->
+{% if user_token %}
 <h2>Book a Room</h2>
 <form method="post" action="/book-room">
     <label>Room:</label>
@@ -51,7 +51,20 @@
     </select>
 
     <label>Date:</label>
-    <input type="date" name="date" required>
+    <input type="date" id="datePicker" name="date" required>
+    <script>
+        const today = new Date().toISOString().split("T")[0];
+        const picker = document.getElementById("datePicker");
+
+        picker.min = today;
+
+        picker.addEventListener("input", function () {
+            if (this.value < today) {
+                this.value = today;
+            }
+        });
+    </script>
+
 
     <label>Start Time:</label>
     <input type="time" name="start_time" required>
@@ -69,6 +82,7 @@
 {% endif %}
 
 <hr/>
+{% endif %}
 <!-- Book a room form ends here-->
 
 {% if user_token %}
@@ -90,6 +104,7 @@
 
 
 <!--Show my Bookings form-->
+{% if user_token %}
 <hr/>
 <h2>Show My Bookings</h2>
 
@@ -110,6 +125,13 @@
 
     <button type="submit">Show Bookings</button>
 </form>
+
+<hr/>
+<form method="get" action="/filter-bookings-by-day">
+  <input type="date" name="date" required>
+  <button type="submit">Filter Bookings</button>
+</form>
+{% endif %}
 </body>
 
 </html>

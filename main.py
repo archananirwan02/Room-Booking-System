@@ -10,6 +10,8 @@ from pymongo.server_api import ServerApi
 from urllib.parse import quote_plus
 from bson import ObjectId
 from fastapi import Form
+from datetime import datetime, timedelta
+
 
 
 username = quote_plus("archana")
@@ -107,17 +109,108 @@ async def root(request: Request):
 
 # Get Room Details
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
-async def view_room(room_id: str, request: Request):
+async def view_room(room_id: str, req: Request):
 
     room = rooms_doc.find_one({"_id": ObjectId(room_id)})
+    if not room:
+        return RedirectResponse("/", status_code=303)
+
+
+    # Find all days for this room
     day_list = list(days_doc.find({"room_id": ObjectId(room_id)}))
+    day_ids = [d["_id"] for d in day_list]
+
+    # Find all bookings for this room
+    bookings = list(bookings_doc.find({"day_id": {"$in": day_ids}}))
+
+    # Attach readable info
+    for b in bookings:
+        day = next(d for d in day_list if d["_id"] == b["day_id"])
+        b["date"] = day["date"]
+
+    # ---- TASK 15: Occupancy for next 5 days ----
+    occupancy_list = []
+    today = datetime.today()
+
+    calendar = []
+    earliest_free = None
+
+    WORK_START = 9 * 60   # 09:00
+    WORK_END = 18 * 60    # 18:00
+    WORK_TOTAL = WORK_END - WORK_START  # 540
+
+
+    for i in range(5):
+        day_date = (today + timedelta(days=i)).strftime("%Y-%m-%d")
+
+        # Find day document for this date
+        day = days_doc.find_one({"room_id": ObjectId(room_id), "date": day_date})
+
+        if not day:
+            occupancy_list.append({"date": day_date, "percent": 0})
+            calendar.append({"date": day_date, "bookings": []})
+            
+            if earliest_free is None:
+                earliest_free = {"date": day_date, "time": "09:00"}
+            continue
+
+        # Get bookings for this day
+        day_bookings = list(bookings_doc.find({"day_id": day["_id"]}))
+
+        # calendar structure (Task 17)
+        calendar_day = []
+        for b in day_bookings:
+            calendar_day.append({
+                "start_time": b["start_time"],
+                "end_time": b["end_time"],
+                "user_email": b["user_email"]
+            })
+        calendar.append({"date": day_date, "bookings": calendar_day})
+
+        # occupancy (Task 15)
+        total_minutes = 0
+        intervals = []
+        for b in day_bookings:
+            start = max(time_to_min(b["start_time"]), WORK_START)
+            end = min(time_to_min(b["end_time"]), WORK_END)
+            if end > start:
+                total_minutes += (end - start)
+                intervals.append((start, end))
+
+        percent = round((total_minutes / WORK_TOTAL) * 100, 2)
+        occupancy_list.append({"date": day_date, "percent": percent})
+
+        # earliest free time (Task 16)
+        if earliest_free is None:
+            if not intervals:
+                earliest_free = {"date": day_date, "time": "09:00"}
+            else:
+                intervals.sort()
+                current = WORK_START
+                for s, e in intervals:
+                    if s > current:
+                        earliest_free = {
+                            "date": day_date,
+                            "time": minutes_to_time(current)
+                        }
+                        break
+                    current = max(current, e)
+                if earliest_free is None and current < WORK_END:
+                    earliest_free = {
+                        "date": day_date,
+                        "time": minutes_to_time(current)
+                    }
+
 
     return templates.TemplateResponse(
         "rooms.html",
         {
-            "request": request,
+            "request": req,
             "room": room,
-            "days": day_list
+            "bookings": bookings,
+            "occupancy": occupancy_list,
+            "earliest_free": earliest_free,
+            "calendar": calendar
         }
     )
 
@@ -440,3 +533,49 @@ async def delete_room(req: Request):
     days_doc.delete_many({"room_id": room_obj_id})
 
     return RedirectResponse("/", status_code=303)
+
+
+# Filter bookings by Day
+@app.get("/filter-bookings-by-day", response_class=HTMLResponse)
+async def filter_by_day(req: Request):
+    date = req.query_params.get("date")
+    id_token = req.cookies.get("token")
+    user_token = validateFirebaseToken(id_token)
+    if not user_token:
+        return RedirectResponse("/?error=not_logged_in", status_code=303)
+
+    if not date:
+        return RedirectResponse("/", status_code=303)
+
+    #Find all days matching this date
+    matching_days = list(days_doc.find({"date": date}))
+    day_ids = [d["_id"] for d in matching_days]
+
+    #Find all bookings on those days
+    bookings = list(bookings_doc.find({"day_id": {"$in": day_ids}}))
+
+    # Attach room + time info
+    for b in bookings:
+        day = next(d for d in matching_days if d["_id"] == b["day_id"])
+        room = rooms_doc.find_one({"_id": day["room_id"]})
+        b["room_no"] = room["room_no"]
+        b["date"] = date
+
+    return templates.TemplateResponse(
+        "filter_booking.html",
+        {
+            "request": req,
+            "bookings": bookings,
+            "selected_date": date
+        }
+    )
+
+# Helper function to convert the time into minutes
+def time_to_min(t):
+    h, m = map(int, t.split(":"))
+    return h * 60 + m
+
+def minutes_to_time(m: int) -> str:
+    h = m // 60
+    mm = m % 60
+    return f"{h:02d}:{mm:02d}"

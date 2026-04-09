@@ -15,3 +15,31 @@ table {
 .success-message {
     color: #006600;
 }
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+.calendar-day {
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 6px;
+    background: #f9f9f9;
+}
+.calendar-day h3 {
+    margin-top: 0;
+    font-size: 16px;
+}
+.booking-block {
+    background: #d9eaff;
+    padding: 5px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.free-slot {
+    color: green;
+    font-weight: bold;
+}

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookings for {{ selected_date }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+
+<body>
+
+<h1>Bookings on {{ selected_date }}</h1>
+
+<!-- Back button -->
+<a href="/" class="back-link">← Back to Home</a>
+
+<hr>
+
+{% if bookings|length == 0 %}
+    <p>No bookings found for this day.</p>
+{% else %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Room</th>
+                <th>Date</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>User</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>{{ b.room_no }}</td>
+                <td>{{ b.date }}</td>
+                <td>{{ b.start_time }}</td>
+                <td>{{ b.end_time }}</td>
+                <td>{{ b.user_email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
+</body>
+</html>
