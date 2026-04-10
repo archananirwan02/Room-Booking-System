@@ -92,6 +92,8 @@ async def root(request: Request):
     success_flag = request.query_params.get("success")
     if success_flag == "booking_created":
         success_message = "Room booked successfully!"
+    if success_flag == "room_added":
+        success_message = "Room added successfully!"
 
 
     room_list = list(rooms_doc.find())
@@ -103,6 +105,8 @@ async def root(request: Request):
             'error_message': error_message,
             'invalid_time_message': invalid_time_message,
             'room_list': room_list,
+            'success_flag': success_flag,
+            'error_flag': error_flag,
             'success_message': success_message
         }
     )
@@ -240,7 +244,7 @@ async def add_room(request: Request):
         "days": [],
         "created_by": user_token["email"]
     })
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse("/?success=room_added", status_code=303)
 
 
 # Book a room route
@@ -265,11 +269,11 @@ async def book_room(req: Request):
         return RedirectResponse("/?error=invalid_time", status_code=303)
 
     # 1. Find or create the Day document
-    day = days_doc.find_one({"room_id": ObjectId(room_id), "date": date})
+    day = days_doc.find_one({"room_no": room_id, "date": date})
 
     if not day:
         day_id = days_doc.insert_one({
-            "room_id": ObjectId(room_id),
+            "room_id": room_id,
             "date": date
         }).inserted_id
     else:

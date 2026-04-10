@@ -2,110 +2,146 @@
 <html>
 
 <head>
-    <title>Room Scheduler</title>
+    <title>Booking Scheduler</title>
     <link type="text/css" href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
     <script type="module" src="{{ url_for('static', path='/firebase-login.js') }}"></script>
 </head>
 
 <body>
-    <h1>Room Booking</h1>
+    <div class="header-container">
+        <h1>Room Booking System</h1>
 
-<div id="login-box" hidden="true">
-    Email: <input type="email" id="email"/><br/>
-    Password: <input type="password" id="password"/><br/>
-    <button id="login">Login</button>
-    <button id="sign-up">Sign Up</button>
-</div>
+        <div class="header-subrow">
+            {% if user_token %}
+                <span class="user-email">User email: {{ user_token.email }}</span>
+            {% endif %}
+            <button id="sign-out" hidden="true">Sign out</button>
+        </div>
+    </div>
 
-<button id="sign-out" hidden="true">Sign out</button>
+    <div id="login-box" class="login-box" hidden="true">
+        Email: <input type="email" id="email"/><br/>
+        Password: <input type="password" id="password"/><br/>
+        <button id="login">Login</button>
+        <button id="sign-up">Sign Up</button>
+    </div>
 
-{% if user_token %}
-<p>User email: {{ user_token.email }}</p>
-<hr/>
-{% endif %}
+    <button id="sign-out" hidden="true">Sign out</button>
 
-{% if user_token %}
-<h2>Add a New Room</h2>
-<form method="post" action="/add-room">
-    <input type="text" name="room_no" placeholder="Room No." required/>
-    <input type="text" name="floor_no" placeholder="Floor No." required/>
-    <button type="submit">Add Room</button>
-</form>
-{% if error_message %}
-    <p class="error-message">{{ error_message }}</p>
-{% endif %}
+    {% if user_token %}
+    <div class="dashboard-grid">
 
+        <div class="dashboard-card">
 
-<hr/>
-{% endif %}
+        <h2>Add a New Room</h2>
+        <form method="post" action="/add-room">
+            <input type="text" name="room_no" placeholder="Room No." required/>
+            <input type="text" name="floor_no" placeholder="Floor No." required/>
+            <button type="submit" style="height: 35px;">Add Room</button>
+        </form>
+        {% if error_flag =="room_exists" %}
+            <p class="error-message">{{ error_message }}</p>
+        {% endif %}
+        {% if success_flag =="room_added" %}
+            <p class="success-message">{{ success_message }}</p>
+        {% endif %}
+        </div>
 
 <!-- Book a room form starts here-->
-{% if user_token %}
-<h2>Book a Room</h2>
-<form method="post" action="/book-room">
-    <label>Room:</label>
-    <select name="room_no">
-        {% for r in room_list %}
-            <option value="{{ r._id }}">{{ r.room_no }}</option>
-        {% endfor %}
-    </select>
+<div class="dashboard-card">
 
-    <label>Date:</label>
-    <input type="date" id="datePicker" name="date" required>
-    <script>
-        const today = new Date().toISOString().split("T")[0];
-        const picker = document.getElementById("datePicker");
-
-        picker.min = today;
-
-        picker.addEventListener("input", function () {
-            if (this.value < today) {
-                this.value = today;
-            }
-        });
-    </script>
+    <h2>Book a Room</h2>
+    <form method="post" action="/book-room">
+        <div class="form-row">
+        <div class="form-group">
+            <label>Room No:</label>
+            <select name="room_no">
+                {% for r in room_list %}
+                <option value="{{ r.room_no }}">{{ r.room_no }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
 
-    <label>Start Time:</label>
-    <input type="time" name="start_time" required>
+        <div class="form-group">
+            <label>Date:</label>
+        <input type="date" id="datePicker" name="date" required>
+        <script>
+            const today = new Date().toISOString().split("T")[0];
+            const picker = document.getElementById("datePicker");
 
-    <label>End Time:</label>
-    <input type="time" name="end_time" required>
+            picker.min = today;
 
-    <button type="submit">Book</button>
-</form>
-{% if invalid_time_message %}
-    <p class="error-message">{{ invalid_time_message }}</p>
-{% endif %}
-{% if success_message %}
-    <p class="success-message">{{ success_message }}</p>
-{% endif %}
+            picker.addEventListener("input", function () {
+                if (this.value < today) {
+                    this.value = today;
+                }
+            });
+        </script>
+        </div>
+        </div>
 
-<hr/>
-{% endif %}
+
+        <div class="form-row">
+        <div class="form-group">
+            <label>Start Time:</label>
+            <input type="time" name="start_time">
+        </div>
+
+        <div class="form-group">
+            <label>End Time:</label>
+            <input type="time" name="end_time">
+        </div>
+    </div>
+
+    <button type="submit" style="height: 35px;">Book</button>
+    {% if invalid_time_message %}
+        <p class="error-message">{{ invalid_time_message }}</p>
+    {% endif %}
+    {% if success_flag == "booking_created" %}
+        <p class="success-message">{{ success_message }}</p>
+    {% endif %}
+</div>
+    </form>
+</div>
 <!-- Book a room form ends here-->
 
-{% if user_token %}
+<div class="dashboard-card full-width">
 <h2>Available Rooms</h2>
 
-<ul>
-{% for r in room_list %}
-    <li>
-        Room No. {{ r.room_no }}
-        <a href="/rooms/{{ r._id }}">View</a>
-        <form method="post" action="/delete-room" style="display:inline;">
-            <input type="hidden" name="room_id" value="{{ r._id }}">
-            <button type="submit">Delete room</button>
-        </form>
-    </li>
-{% endfor %}
-</ul>
-{% endif %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>Room No.</th>
+            <th>Floor</th>
+            <th colspan="2">Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for r in room_list %}
+        <tr>
+            <td>{{ r.room_no }}</td>
+            <td>{{ r.floor_no }}</td>
+            <td>
+                <a href="/rooms/{{ r._id }}" class="hyperlink">View</a>
+            </td>
+            <td>
+                <form method="post" action="/delete-room">
+                    <input type="hidden" name="room_id" value="{{ r._id }}">
+                    <button type="submit" class="delete-btn">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endif %} <!-- endif for user_token-->
 
 
 <!--Show my Bookings form-->
 {% if user_token %}
-<hr/>
 <h2>Show My Bookings</h2>
 
 <form method="get" action="/my-bookings">

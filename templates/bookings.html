@@ -2,19 +2,20 @@
 <html>
 
 <head>
-    <title>User Bookings</title>
-    <link type="text/css" href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
+    <title>My Bookings</title>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
 </head>
 
-<body>
-<h1>My Bookings</h1>
+<body class="page-body">
+<h1 class="page-title">My Bookings</h1>
 
-<table>
+<table class="table">
     <tr>
         <th>Room</th>
         <th>Date</th>
         <th>Start Time</th>
         <th>End Time</th>
+        <th colspan="2">Actions</th>
     </tr>
 
     {% for b in bookings %}
@@ -24,12 +25,15 @@
         <td>{{ b.start_time }}</td>
         <td>{{ b.end_time }}</td>
         <td>
-            <a href="/edit-booking/{{ b._id }}">Edit</a>
+            
+            <form method="get" action="/edit-booking/{{ b._id }}">
+                <button class="button edit-button" type="submit">Edit</button>
+            </form>
         </td>
         <td>
             <form method="post" action="/delete-room-booking">
                 <input type="hidden" name="booking_id" value="{{ b._id }}">
-                <button type="submit">Delete</button>
+                <button class="button delete-button" type="submit">Delete</button>
             </form>
         </td>
     </tr>
@@ -38,7 +42,8 @@
 {% if success_message %}
     <p class="success-message">{{ success_message }}</p>
 {% endif %}
-
-<a href="/">Back</a>
+    <div style="text-align: center;">
+        <a class="hyperlink" href="/">Home</a>
+    </div>
 </body>
 </html>
