@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <p><a href="/">Back</a></p>
     <title>{{ room.room_no }}</title>
     <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet"/>
 </head>
 
-<body>
+<body class="page-body">
 
 <h1>Room {{ room.room_no }} (Floor {{ room.floor_no }})</h1>
 
@@ -96,10 +97,6 @@
     </div>
     {% endfor %}
 </div>
-
-
-
-<a href="/">Back</a>
 
 </body>
 </html>

@@ -7,26 +7,24 @@
     <script type="module" src="{{ url_for('static', path='/firebase-login.js') }}"></script>
 </head>
 
-<body>
+<body class="page-body">
     <div class="header-container">
         <h1>Room Booking System</h1>
 
         <div class="header-subrow">
             {% if user_token %}
-                <span class="user-email">User email: {{ user_token.email }}</span>
+                <span class="user-email">Logged in as: {{ user_token.email }}</span>
             {% endif %}
-            <button id="sign-out" hidden="true">Sign out</button>
+            <button class="secondary-button button sign-out-button" id="sign-out" hidden="true">Sign out</button>
         </div>
     </div>
 
     <div id="login-box" class="login-box" hidden="true">
         Email: <input type="email" id="email"/><br/>
         Password: <input type="password" id="password"/><br/>
-        <button id="login">Login</button>
-        <button id="sign-up">Sign Up</button>
+        <button class="primary-button button" id="login">Login</button>
+        <button class="secondary-button button" id="sign-up">Sign Up</button>
     </div>
-
-    <button id="sign-out" hidden="true">Sign out</button>
 
     {% if user_token %}
     <div class="dashboard-grid">
@@ -37,7 +35,7 @@
         <form method="post" action="/add-room">
             <input type="text" name="room_no" placeholder="Room No." required/>
             <input type="text" name="floor_no" placeholder="Floor No." required/>
-            <button type="submit" style="height: 35px;">Add Room</button>
+            <button class="primary-button button" type="submit" style="height: 35px;">Add Room</button>
         </form>
         {% if error_flag =="room_exists" %}
             <p class="error-message">{{ error_message }}</p>
@@ -57,7 +55,7 @@
             <label>Room No:</label>
             <select name="room_no">
                 {% for r in room_list %}
-                <option value="{{ r.room_no }}">{{ r.room_no }}</option>
+                <option value="{{ r._id }}">{{ r.room_no }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -94,7 +92,7 @@
         </div>
     </div>
 
-    <button type="submit" style="height: 35px;">Book</button>
+    <button class="primary-button button" type="submit" style="height: 35px;">Book</button>
     {% if invalid_time_message %}
         <p class="error-message">{{ invalid_time_message }}</p>
     {% endif %}
@@ -109,6 +107,7 @@
 <div class="dashboard-card full-width">
 <h2>Available Rooms</h2>
 
+<div class="table-scroll">
 <table class="table">
     <thead>
         <tr>
@@ -124,12 +123,14 @@
             <td>{{ r.room_no }}</td>
             <td>{{ r.floor_no }}</td>
             <td>
-                <a href="/rooms/{{ r._id }}" class="hyperlink">View</a>
+                <form method="get" action="/rooms/{{ r._id }}">
+                <button class="primary-button button" type="submit">View</button>
+            </form>
             </td>
             <td>
                 <form method="post" action="/delete-room">
                     <input type="hidden" name="room_id" value="{{ r._id }}">
-                    <button type="submit" class="delete-btn">Delete</button>
+                    <button class="delete-button button" type="submit" class="delete-btn">Delete</button>
                 </form>
             </td>
         </tr>
@@ -137,36 +138,45 @@
     </tbody>
 </table>
 </div>
+</div>
 {% endif %} <!-- endif for user_token-->
 
 
-<!--Show my Bookings form-->
 {% if user_token %}
-<h2>Show My Bookings</h2>
+<div class="dashboard-grid dashboard-grid-columns">
 
-<form method="get" action="/my-bookings">
-    <button type="submit">Show My Bookings</button>
-</form>
+    <!-- My Bookings -->
+    <div class="dashboard-card">
+        <h2>My Bookings</h2>
+        <form method="get" action="/my-bookings">
+            <button class="primary-button button" type="submit" style="height: 35px;">Show Bookings</button>
+        </form>
+    </div>
 
-<hr/>
-<h2>Show My Bookings for a Specific Room</h2>
+    <!-- Room-Wise Bookings -->
+    <div class="dashboard-card">
+        <h2>Room‑Wise Bookings</h2>
+        <form method="get" action="/my-bookings-room">
+            <label>Select Room:</label>
+            <select name="room_id">
+                {% for r in room_list %}
+                    <option value="{{ r._id }}">{{ r.room_no }}</option>
+                {% endfor %}
+            </select>
+            <button class="primary-button button" type="submit" style="height: 35px;">Bookings</button>
+        </form>
+    </div>
 
-<form method="get" action="/my-bookings-room">
-    <label>Select Room:</label>
-    <select name="room_id">
-        {% for r in room_list %}
-            <option value="{{ r._id }}">{{ r.room_no }}</option>
-        {% endfor %}
-    </select>
+    <!-- Filter Bookings -->
+    <div class="dashboard-card">
+        <h2>Filter Bookings</h2>
+        <form method="get" action="/filter-bookings-by-day">
+            <input type="date" name="date" required>
+            <button class="primary-button button" type="submit" style="height: 35px;">Filter</button>
+        </form>
+    </div>
 
-    <button type="submit">Show Bookings</button>
-</form>
-
-<hr/>
-<form method="get" action="/filter-bookings-by-day">
-  <input type="date" name="date" required>
-  <button type="submit">Filter Bookings</button>
-</form>
+</div>
 {% endif %}
 </body>
 

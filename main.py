@@ -95,7 +95,7 @@ async def root(request: Request):
     if success_flag == "room_added":
         success_message = "Room added successfully!"
 
-
+    
     room_list = list(rooms_doc.find())
     return templates.TemplateResponse(
         'main.html',
@@ -269,11 +269,11 @@ async def book_room(req: Request):
         return RedirectResponse("/?error=invalid_time", status_code=303)
 
     # 1. Find or create the Day document
-    day = days_doc.find_one({"room_no": room_id, "date": date})
+    day = days_doc.find_one({"room_id": ObjectId(room_id), "date": date})
 
     if not day:
         day_id = days_doc.insert_one({
-            "room_id": room_id,
+            "room_id": ObjectId(room_id),
             "date": date
         }).inserted_id
     else:
