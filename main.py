@@ -327,6 +327,7 @@ async def my_bookings(req: Request):
         "bookings.html",
         {"request": req, 
          "bookings": user_bookings,
+         "user_email": user_email,
          "success_message": success_message}
     )
 
@@ -375,6 +376,7 @@ async def my_bookings_room(req: Request, room_id: str):
         "bookings.html",
         {"request": req, 
          "bookings": user_bookings,
+         "room_no_booking": room["room_no"],
          "success_message": success_message}
     )
 

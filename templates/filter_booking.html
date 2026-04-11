@@ -8,10 +8,10 @@
 <body class="page-body">
 <!-- Back button -->
 <a href="/" class="back-link">← Back</a>
-<h1>Bookings on {{ selected_date }}</h1>
+<h1 class="page-title">Bookings on {{ selected_date }}</h1>
 
 {% if bookings|length == 0 %}
-    <p>No bookings found for this day.</p>
+    <p class="information-message">No bookings were found for this day.</p>
 {% else %}
 <hr>
     <table class="table">

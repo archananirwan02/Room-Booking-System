@@ -158,6 +158,12 @@ select {
     font-weight: 700;
 }
 
+.information-message {
+    color: #0078d4;
+    font-weight: 700;
+    text-align: center;
+}
+
 .hyperlink {
     display: inline;
     padding: 0;

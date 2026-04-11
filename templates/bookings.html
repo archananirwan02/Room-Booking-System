@@ -8,7 +8,13 @@
 
 <body class="page-body">
 <h1 class="page-title">My Bookings</h1>
-
+{% if bookings|length == 0 %}
+    {% if user_email %}
+    <p class="information-message">No bookings were found for user {{user_email}}</p>
+    {% else %}
+    <p class="information-message">No bookings were found for room no {{room_no_booking}}</p>
+    {% endif %}
+{% else %}
 <table class="table">
     <tr>
         <th>Room</th>
@@ -39,6 +45,7 @@
     </tr>
     {% endfor %}
 </table>
+{% endif %}
 {% if success_message %}
     <p class="success-message">{{ success_message }}</p>
 {% endif %}

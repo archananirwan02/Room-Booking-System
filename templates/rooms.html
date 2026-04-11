@@ -8,21 +8,23 @@
 
 <body class="page-body">
 
-<h1>Room {{ room.room_no }} (Floor {{ room.floor_no }})</h1>
+<h1 class="page-title">Room {{ room.room_no }} (Floor {{ room.floor_no }})</h1>
 
 <!--Task 14 All Bookings for this room-->
-<h2>All Bookings for This Room</h2>
 
 {% if bookings|length == 0 %}
-    <p>No bookings found for this room.</p>
+    <p class="information-message">No bookings were found for this room.</p>
 {% else %}
+<div class="dashboard-grid dashboard-grid-columns">
+    <div class="dashboard-card">
+<h2 class="page-title">All Bookings for This Room</h2>
     <table class="table">
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>User</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Created By</th>
             </tr>
         </thead>
 
@@ -37,11 +39,15 @@
             {% endfor %}
         </tbody>
     </table>
+    </div>
+    </div>
 {% endif %}
-<hr>
+
 
 <!--Task 15: Next 5 Days occupancy-->
-<h2>Next 5 Days Occupancy</h2>
+<div class="dashboard-grid dashboard-grid-columns">
+    <div class="dashboard-card">
+<h2 class="page-title">Next 5 Days Occupancy</h2>
 
 <table class="table">
     <thead>
@@ -60,24 +66,30 @@
         {% endfor %}
     </tbody>
 </table>
+    </div>
+</div>
 
-<hr>
 <!--Task 16: Earliest free timeslot-->
-<h2>Earliest Free Time (Next 5 Days)</h2>
+<div class="dashboard-grid dashboard-grid-columns">
+    <div class="dashboard-card">
+<h2 class="page-title">Earliest Free Time (Next 5 Days)</h2>
 
 {% if earliest_free %}
-    <p class="free-slot">
+    <p class="information-message">
         Earliest available time: {{ earliest_free.date }} at {{ earliest_free.time }}
     </p>
 {% else %}
     <p>No free time available in the next 5 days.</p>
 {% endif %}
 
-<hr>
+    </div>
+</div>
 
 
 <!--Task 17: 5day calendar-->
-<h2>5‑Day Booking Calendar</h2>
+<div class="dashboard-grid dashboard-grid-columns">
+    <div class="dashboard-card">
+<h2 class="page-title">5‑Day Booking Calendar</h2>
 
 <div class="calendar-grid">
     {% for day in calendar %}
@@ -96,6 +108,8 @@
         {% endif %}
     </div>
     {% endfor %}
+</div>
+    </div>
 </div>
 
 </body>
