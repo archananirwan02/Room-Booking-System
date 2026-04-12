@@ -39,6 +39,15 @@
         </form>
         {% if error_flag =="room_exists" %}
             <p class="error-message">{{ error_message }}</p>
+        
+        {% elif error_flag =="room_has_bookings" %}
+            <script>
+                alert("Room cannot be deleted since it has booking.")
+            </script>
+        {% elif error_flag =="room_delete_forbidden" %}
+            <script>
+                alert("Room cannot be deleted since it is created by other user.")
+            </script>
         {% endif %}
         {% if success_flag =="room_added" %}
             <p class="success-message">{{ success_message }}</p>
