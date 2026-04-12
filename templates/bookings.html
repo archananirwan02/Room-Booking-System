@@ -10,9 +10,9 @@
 <h1 class="page-title">My Bookings</h1>
 {% if bookings|length == 0 %}
     {% if user_email %}
-    <p class="information-message">No bookings were found for user {{user_email}}</p>
+    <p class="information-message">No bookings were found for User {{user_email}}</p>
     {% else %}
-    <p class="information-message">No bookings were found for room no {{room_no_booking}}</p>
+    <p class="information-message">No bookings were found for Room No {{room_no_booking}}</p>
     {% endif %}
 {% else %}
 <table class="table">

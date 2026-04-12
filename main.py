@@ -88,6 +88,8 @@ async def root(request: Request):
         error_message = "Room already exists."
     elif error_flag == "invalid_time":
         invalid_time_message = "End time must be later than start time."
+    elif error_flag == "room_already_booked":
+        invalid_time_message = "Booking already exists."
 
     success_flag = request.query_params.get("success")
     if success_flag == "booking_created":
@@ -111,7 +113,7 @@ async def root(request: Request):
         }
     )
 
-# Get Room Details
+# Get Room Details route when View Button is clicked on Available rooms table
 @app.get("/rooms/{room_id}", response_class=HTMLResponse)
 async def view_room(room_id: str, req: Request):
 
@@ -127,21 +129,20 @@ async def view_room(room_id: str, req: Request):
     # Find all bookings for this room
     bookings = list(bookings_doc.find({"day_id": {"$in": day_ids}}))
 
-    # Attach readable info
     for b in bookings:
         day = next(d for d in day_list if d["_id"] == b["day_id"])
         b["date"] = day["date"]
 
-    # ---- TASK 15: Occupancy for next 5 days ----
+    # Occupancy for next 5 days
     occupancy_list = []
     today = datetime.today()
 
     calendar = []
     earliest_free = None
 
-    WORK_START = 9 * 60   # 09:00
-    WORK_END = 18 * 60    # 18:00
-    WORK_TOTAL = WORK_END - WORK_START  # 540
+    START_TIME = 9 * 60   # 09:00
+    END_TIME = 18 * 60    # 18:00
+    TIME_TOTAL = END_TIME - START_TIME  # 540
 
 
     for i in range(5):
@@ -175,13 +176,13 @@ async def view_room(room_id: str, req: Request):
         total_minutes = 0
         intervals = []
         for b in day_bookings:
-            start = max(time_to_min(b["start_time"]), WORK_START)
-            end = min(time_to_min(b["end_time"]), WORK_END)
+            start = max(time_to_min(b["start_time"]), START_TIME)
+            end = min(time_to_min(b["end_time"]), END_TIME)
             if end > start:
                 total_minutes += (end - start)
                 intervals.append((start, end))
 
-        percent = round((total_minutes / WORK_TOTAL) * 100, 2)
+        percent = round((total_minutes / TIME_TOTAL) * 100, 2)
         occupancy_list.append({"date": day_date, "percent": percent})
 
         # earliest free time (Task 16)
@@ -190,7 +191,7 @@ async def view_room(room_id: str, req: Request):
                 earliest_free = {"date": day_date, "time": "09:00"}
             else:
                 intervals.sort()
-                current = WORK_START
+                current = START_TIME
                 for s, e in intervals:
                     if s > current:
                         earliest_free = {
@@ -199,7 +200,7 @@ async def view_room(room_id: str, req: Request):
                         }
                         break
                     current = max(current, e)
-                if earliest_free is None and current < WORK_END:
+                if earliest_free is None and current < END_TIME:
                     earliest_free = {
                         "date": day_date,
                         "time": minutes_to_time(current)
@@ -218,7 +219,7 @@ async def view_room(room_id: str, req: Request):
         }
     )
 
-# Add Room
+# Add a Room route
 @app.post("/add-room")
 async def add_room(request: Request):
     form = await request.form()
@@ -233,8 +234,6 @@ async def add_room(request: Request):
     room_exists = rooms_doc.find_one({"room_no": room_no})
     
     if room_exists:
-        # Optionally, you can redirect or show a message
-        print(f"Room '{room_no}' already exists.")
         return RedirectResponse("/?error=room_exists", status_code=303)
     
     # Insert only if not found
@@ -268,7 +267,7 @@ async def book_room(req: Request):
     if end_time <= start_time:
         return RedirectResponse("/?error=invalid_time", status_code=303)
 
-    # 1. Find or create the Day document
+    # Find or create the Day document
     day = days_doc.find_one({"room_id": ObjectId(room_id), "date": date})
 
     if not day:
@@ -278,6 +277,17 @@ async def book_room(req: Request):
         }).inserted_id
     else:
         day_id = day["_id"]
+
+    # Check for overlapping booking by any user on the same room and time period
+    overlapped_booking = bookings_doc.find_one({
+            "day_id": day_id,
+            "$or": [
+                {"start_time": {"$lt": end_time}, "end_time": {"$gt": start_time}}
+            ]
+        })
+
+    if overlapped_booking:
+        return RedirectResponse("/?error=room_already_booked", status_code=303)
 
     # 2. Insert booking
     bookings_doc.insert_one({
@@ -290,7 +300,7 @@ async def book_room(req: Request):
     return RedirectResponse("/?success=booking_created", status_code=303)
 
 
-# Route for All my bookings
+# Route for All My Bookings
 @app.get("/my-bookings", response_class=HTMLResponse)
 async def my_bookings(req: Request):
 
@@ -309,7 +319,6 @@ async def my_bookings(req: Request):
 
     if success_flag == "booking_deleted":
         success_message = "Booking deleted successfully!"
-
 
     # Fetch all bookings for this user
     user_bookings = list(bookings_doc.find({"user_email": user_email}))
@@ -332,7 +341,7 @@ async def my_bookings(req: Request):
     )
 
 
-# Show all bookings current user has made on specific room
+# Route to Show all bookings current user has made on specific room
 @app.get("/my-bookings-room", response_class=HTMLResponse)
 async def my_bookings_room(req: Request, room_id: str):
 
@@ -364,7 +373,6 @@ async def my_bookings_room(req: Request, room_id: str):
         "day_id": {"$in": day_ids}
     }))
 
-    # Attach readable info
     room = rooms_doc.find_one({"_id": ObjectId(room_id)})
 
     for b in user_bookings:
@@ -380,7 +388,7 @@ async def my_bookings_room(req: Request, room_id: str):
          "success_message": success_message}
     )
 
-# Delete a booking route
+# Route to Delete a booking
 @app.post("/delete-room-booking")
 async def delete_booking(req: Request):
     form = await req.form()
@@ -408,11 +416,12 @@ async def delete_booking(req: Request):
     # Redirect back to "My Bookings"
     return RedirectResponse("/my-bookings?success=booking_deleted", status_code=303)
 
-# Edit booking route
+# Edit booking route for Get request
 @app.get("/edit-booking/{booking_id}", response_class=HTMLResponse)
 async def edit_booking(req: Request, booking_id: str):
     id_token = req.cookies.get("token")
     user_token = validateFirebaseToken(id_token)
+    error_message = None
     if not user_token:
         return RedirectResponse("/?error=not_logged_in", status_code=303)
 
@@ -422,6 +431,12 @@ async def edit_booking(req: Request, booking_id: str):
         "_id": ObjectId(booking_id),
         "user_email": user_email
     })
+
+    error_flag = req.query_params.get("error")
+
+    if error_flag == "room_already_booked":
+        error_message = "Overlapped booking exists"
+
     if not booking:
         return RedirectResponse("/my-bookings?error=booking_not_found", status_code=303)
 
@@ -431,7 +446,7 @@ async def edit_booking(req: Request, booking_id: str):
 
     room = rooms_doc.find_one({"_id": ObjectId(day["room_id"])})
 
-    # attach extra fields for template
+    # Additional fileds to be used in HTML template
     booking["date"] = day["date"]
     booking["room_no"] = room["room_no"]
     booking["room_id"] = str(room["_id"])
@@ -440,7 +455,8 @@ async def edit_booking(req: Request, booking_id: str):
         "edit_booking.html",
         {
             "request": req,
-            "booking": booking
+            "booking": booking,
+            "error_message": error_message
         }
     )
 
@@ -462,7 +478,7 @@ async def edit_booking(
 
     user_email = user_token["email"]
 
-    # basic time validation like in book-room
+    # time validation to display error if end_time is less than or equal to start_time
     if end_time <= start_time:
         return RedirectResponse("/my-bookings?error=invalid_time", status_code=303)
 
@@ -484,6 +500,17 @@ async def edit_booking(
         }).inserted_id
     else:
         day_id = day["_id"]
+
+    # Overlapping booking check excluding current booking
+    overlapped_booking = bookings_doc.find_one({
+            "day_id": day_id,
+            "_id": {"$ne": ObjectId(booking_id)},
+            "start_time": {"$lt": end_time},
+            "end_time": {"$gt": start_time}
+        })
+
+    if overlapped_booking:
+            return RedirectResponse("/edit-booking/"+booking_id+ "?error=room_already_booked", status_code=303)
 
     # update booking
     bookings_doc.update_one(
@@ -517,7 +544,7 @@ async def delete_room(req: Request):
     user_email = user_token["email"]
     room_obj_id = ObjectId(room_id)
 
-    #room exists and was created by this user
+    #find if room exists and was created by this user
     room = rooms_doc.find_one({
         "_id": room_obj_id,
         "created_by": user_email
@@ -560,7 +587,7 @@ async def filter_by_day(req: Request):
     #Find all bookings on those days
     bookings = list(bookings_doc.find({"day_id": {"$in": day_ids}}))
 
-    # Attach room + time info
+    # Room and time information
     for b in bookings:
         day = next(d for d in matching_days if d["_id"] == b["day_id"])
         room = rooms_doc.find_one({"_id": day["room_id"]})
@@ -581,6 +608,7 @@ def time_to_min(t):
     h, m = map(int, t.split(":"))
     return h * 60 + m
 
+# Helper function to convert minutes back to time
 def minutes_to_time(m: int) -> str:
     h = m // 60
     mm = m % 60
