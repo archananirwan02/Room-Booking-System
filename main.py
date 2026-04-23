@@ -13,7 +13,6 @@ from fastapi import Form
 from datetime import datetime, timedelta
 
 
-
 username = quote_plus("archana")
 password = quote_plus("Manish@123")
 
